@@ -143,7 +143,7 @@ NOTES:
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return ~((~(~x&y))&(~(x&~y)));
+    return ~(~(~x & y) & ~(x & ~y));
 }
 /* 
  * tmin - return minimum two's complement integer 
@@ -152,8 +152,7 @@ int bitXor(int x, int y) {
  *   Rating: 1
  */
 int tmin(void) {
-  int a = 1;
-  return a << 31;
+  return 1 << 31;
 }
 //2
 /*
@@ -164,11 +163,11 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  int y = x + 1;//should be 0x8000_0000
-  int t = y + x;//should be 0x8000_0000 + 0x7FFF_FFFF = 0xFFFF_FFFF
-  t = !t;//should be 1
-  int u = !x;//should be 0
-  return t & !u;
+  int y = x + 1; // should be 0x8000_0000
+  int t = y + x; //should be 0xFFFF_FFFF
+  int u = !!~x; //a mask for 0xFFFF_FFFF, if x is -1 then mask = 1
+  t = !~t; // should be 1
+  return t & u;
 }
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -179,13 +178,10 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  int basic_mask = 0xAA;
-  int mask = basic_mask;
-  mask = mask | basic_mask << 8;
-  mask = mask | basic_mask << 16;
-  mask = mask | basic_mask << 24;
-  int y = x & mask;
-  return !(y ^ mask);
+  int mask = 0xAA;
+  mask = mask | mask << 8;
+  mask = mask | mask << 16;
+  return !((x & mask) ^ mask);
 }
 /* 
  * negate - return -x 
@@ -208,8 +204,8 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  int lowerBound = x + (~0x30 + 1); // 相当于 x - 0x30
-  int upperBound = 0x39 + (~x + 1); // 相当于 0x39 - x
+  int lowerBound = x + (~0x30 + 1); // x - 0x30
+  int upperBound = 0x39 + (~x + 1); // 0x39 - x
   return !(lowerBound >> 31) & !(upperBound >> 31);
 }
 
@@ -267,10 +263,13 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  int sign = x >> 31;
-  x = (sign & ~x) | (~sign & x);
 
-  int b16, b8, b4, b2, b1, b0;
+  int sign = x >> 31;
+  
+  int b16 = 0; int b8 = 0; int b4 = 0; int b2 = 0; int b1 = 0; int b0 = 0;
+
+  x = (~sign & x) | (sign & ~x);
+  
   b16 = !!(x >> 16) << 4;
   x >>= b16;
   b8 = !!(x >> 8) << 3;
@@ -302,7 +301,7 @@ unsigned floatScale2(unsigned uf) {
   unsigned exp = (uf >> 23) & 0xFF; // 指数位
   unsigned frac = uf & 0x7FFFFF;    // 尾数位
 
-  // 处理NaN和无穷大情况
+  // 处理NaN和无穷大情况】
   if (exp == 0xFF) {
     return uf;
   }
@@ -343,6 +342,7 @@ int floatFloat2Int(unsigned uf) {
     unsigned frac = uf & 0x7FFFFF;  // 尾数位
 
     int E = exp - 127; // 计算偏移后的指数值
+    unsigned int result = 0;
 
     // 处理特殊情况：NaN和无穷大
     if (exp == 0xFF) {
@@ -360,7 +360,7 @@ int floatFloat2Int(unsigned uf) {
     }
 
     // 计算实际的整数值
-    unsigned int result = (1 << 23) | frac; // 添加隐含的1
+    result = (1 << 23) | frac; // 添加隐含的1
     if (E > 23) {
         result = result << (E - 23);
     } else {
@@ -387,20 +387,22 @@ int floatFloat2Int(unsigned uf) {
  *   Max ops: 30 
  *   Rating: 4
  */
-unsigned floatPower2(int x) {
-    // 偏移后的指数值
-    int exp = x + 127;
+unsigned floatPower2(int x) 
+{
+    int exp = x + 127; // 将 x 转换为指数部分
 
-    // 如果指数值太小，返回 0
     if (exp <= 0) {
+        // 如果指数小于等于0，返回0（表示太小，无法表示为非规格化数）
         return 0;
     }
 
-    // 如果指数值太大，返回正无穷大
     if (exp >= 255) {
-        return 0x7F800000;
+        // 如果指数大于等于255，返回+INF
+        return 0x7F800000; // +INF的表示方法
     }
 
-    // 正常情况，组合成浮点数表示
+    // 正常情况下返回带偏移量的指数部分，尾数部分为0
     return exp << 23;
 }
+
+
